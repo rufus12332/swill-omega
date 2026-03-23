@@ -1,9 +1,13 @@
+
+Интерфейсная визуализация для демонстрации сценария ввода. Логика работает локально в браузере на тестовых значениях. Никакие реальные персональные данные, банковские карты или внешние базы не используются. не пиши ничего там просто пустое место оставь все, и убери слово визуализация взаместо этоо ничего не ставь все я тее сказал убрать 2 пукта все остальное оставь 
+
+
 <!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CFDB v2.4 — визуализация</title>
+  <title>CFDB v2.4</title>
   <style>
     :root{
       --bg: rgb(7,11,20);
@@ -49,7 +53,7 @@
       font-weight:800;
     }
     h1{ margin:0; font-size: clamp(18px, 2.2vw, 26px); line-height:1.2; }
-    .sub{ margin: 6px 0 0; color: var(--muted); max-width: 72ch; font-size: 13.5px; }
+    .sub{ margin: 6px 0 0; color: var(--muted); max-width: 72ch; font-size: 13.5px; min-height: 34px; }
     .pill{
       display:inline-flex; align-items:center; gap:8px;
       padding: 8px 12px; border-radius:999px;
@@ -186,11 +190,8 @@
         <div class="brand">
           <div class="logo">CF</div>
           <div>
-            <h1>Check Fraud Database v2.4 — визуализация</h1>
-            <div class="sub">
-              Интерфейсная визуализация для демонстрации сценария ввода. Логика работает локально в браузере на тестовых значениях.
-              Никакие реальные персональные данные, банковские карты или внешние базы не используются.
-            </div>
+            <h1>Check Fraud Database v2.4</h1>
+            <div class="sub"></div>
           </div>
         </div>
         <div class="pill">UI • локальная mock-логика</div>
