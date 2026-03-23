@@ -1,4 +1,4 @@
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -197,32 +197,32 @@
             <div class="sub"></div>
           </div>
         </div>
-        <div class="pill">UI • локальная mock-логика</div>
+        <div class="pill">UI • local mock logic</div>
       </div>
     </header>
 
     <div class="grid">
       <section class="card">
-        <h2>Проверка</h2>
+        <h2>Check</h2>
 
         <div class="row">
           <div style="flex:1 1 260px;">
-            <label for="checkId">Номер чека</label>
-            <input id="checkId" placeholder="Например: 104-992301" autocomplete="off" />
+            <label for="checkId">Check Number</label>
+            <input id="checkId" placeholder="Example: 104-992301" autocomplete="off" />
           </div>
           <div style="flex:1 1 220px;">
-            <label for="bank">Банк (опционально)</label>
-            <input id="bank" placeholder="Например: Bank of America" autocomplete="organization" />
+            <label for="bank">Bank (optional)</label>
+            <input id="bank" placeholder="Example: Bank of America" autocomplete="organization" />
           </div>
           <div style="flex:0 0 180px;">
-            <button class="btn" id="btnCheck" type="button">Проверить</button>
+            <button class="btn" id="btnCheck" type="button">Check</button>
           </div>
         </div>
 
         <div class="resultBox" id="resultBox">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
             <div>
-              <div style="font-weight:900; letter-spacing:.2px;">Результат</div>
+              <div style="font-weight:900; letter-spacing:.2px;">Result</div>
               <div class="muted" id="resultText" style="margin-top:6px;"></div>
             </div>
             <div class="tagRow">
@@ -231,23 +231,23 @@
             </div>
           </div>
           <div class="tagRow" style="margin-top:12px;">
-            <span class="tag" id="tagBank">Банк: —</span>
+            <span class="tag" id="tagBank">Bank: —</span>
             <span class="tag" id="tagMatch">Match: —</span>
-            <span class="tag" id="tagTime">Время: —</span>
+            <span class="tag" id="tagTime">Time: —</span>
           </div>
         </div>
 
         <div class="bar" aria-hidden="true"><i id="updateBar"></i></div>
         <div class="foot">
-          Обновления: <b>Март 2026</b> (mock) +<b>12 000</b> чеков.
-          Нормализация банка включает `Bank of America`.
+          Updates: <b>March 2026</b> (mock) +<b>12,000</b> checks.
+          Bank normalization includes `Bank of America`.
         </div>
       </section>
 
       <section class="card">
-        <h2>База</h2>
+        <h2>Database</h2>
         <div class="muted" style="margin-bottom:10px; font-size:13px;">
-          Показан небольшой набор тестовых строк. Поиск подсвечивает совпадение только в локальном списке.
+          A small set of test rows is shown. Search only highlights matches in the local list.
         </div>
         <div class="tableWrap">
           <table>
@@ -264,7 +264,7 @@
         </div>
 
         <div class="foot">
-          Примечание: логика и значения не связаны с реальными проверками или внешними источниками.
+          Note: logic and values are not connected to real checks or external data sources.
         </div>
       </section>
     </div>
@@ -272,12 +272,12 @@
 
   <script>
     const demoDB = [
-      { id: "104-992301", risk: "OK",    card: "•••• 4821", bank: "Bank of America" },
-      { id: "301-775019", risk: "WARN",  card: "•••• 1130", bank: "Chase" },
-      { id: "777-120045", risk: "BAD",   card: "•••• 9007", bank: "Wells Fargo" },
-      { id: "501-330218", risk: "WARN",  card: "•••• 2244", bank: "Bank of America" },
-      { id: "990-010203", risk: "OK",     card: "•••• 7002", bank: "Citi" },
-      { id: "204-555666", risk: "BAD",    card: "•••• 6611", bank: "Capital One" }
+      { id: "104-992301", risk: "OK",   card: "•••• 4821", bank: "Bank of America" },
+      { id: "301-775019", risk: "WARN", card: "•••• 1130", bank: "Chase" },
+      { id: "777-120045", risk: "BAD",  card: "•••• 9007", bank: "Wells Fargo" },
+      { id: "501-330218", risk: "WARN", card: "•••• 2244", bank: "Bank of America" },
+      { id: "990-010203", risk: "OK",   card: "•••• 7002", bank: "Citi" },
+      { id: "204-555666", risk: "BAD",  card: "•••• 6611", bank: "Capital One" }
     ];
 
     const levelToTagClass = (risk) => {
@@ -309,7 +309,7 @@
         const tr = document.createElement("tr");
         tr.dataset.checkId = row.id;
 
-        const riskText = row.risk === "OK" ? "Низкий" : (row.risk === "WARN" ? "Средний" : "Высокий");
+        const riskText = row.risk === "OK" ? "Low" : (row.risk === "WARN" ? "Medium" : "High");
 
         tr.innerHTML = `
           <td><code>${row.id}</code></td>
@@ -323,14 +323,14 @@
 
     function computeRiskFromIdFallback(checkId) {
       const digits = (checkId || "").replace(/\D/g, "");
-      if (digits.length < 6) return { level: "WARN", text: "Недостаточно данных (локально)." };
+      if (digits.length < 6) return { level: "WARN", text: "Not enough data (local)." };
 
       let tail = Number(digits.slice(-6));
-      if (!Number.isFinite(tail)) return { level: "WARN", text: "Не удалось обработать ID (локально)." };
+      if (!Number.isFinite(tail)) return { level: "WARN", text: "Could not process ID (local)." };
 
-      if (tail % 13 === 0) return { level: "BAD", text: "Повышенный риск (локально). Усилить контроль." };
-      if (tail % 7 === 0) return { level: "WARN", text: "Есть предупреждение (локально). Перепроверить реквизиты." };
-      return { level: "OK", text: "Риск выглядит низким (локально)." };
+      if (tail % 13 === 0) return { level: "BAD", text: "Elevated risk (local). Increase control checks." };
+      if (tail % 7 === 0) return { level: "WARN", text: "Warning present (local). Re-check details." };
+      return { level: "OK", text: "Risk appears low (local)." };
     }
 
     function highlightMatch(checkId) {
@@ -342,7 +342,7 @@
 
     function formatTime(ts) {
       const d = new Date(ts);
-      return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
     }
 
     renderTable();
@@ -373,13 +373,13 @@
       let level, msg, matchLabel;
       if (found) {
         level = found.risk;
-        msg = `Найдено в локальном списке. Риск: ${found.risk}.`;
-        matchLabel = "Да";
+        msg = `Found in local list. Risk: ${found.risk}.`;
+        matchLabel = "Yes";
       } else {
         const fallback = computeRiskFromIdFallback(checkId);
         level = fallback.level;
-        msg = `В локальном списке совпадения нет. ${fallback.text}`;
-        matchLabel = "Нет";
+        msg = `No match in local list. ${fallback.text}`;
+        matchLabel = "No";
       }
 
       const durationMs = Math.max(1, Math.round(performance.now() - t0));
@@ -389,11 +389,11 @@
 
       tagLevel.classList.remove("ok","warn","bad");
       tagLevel.classList.add(levelToTagClass(level));
-      tagLevel.textContent = `Риск: ${level}`;
+      tagLevel.textContent = `Risk: ${level}`;
 
-      tagBank.textContent = `Банк: ${normalizedBank || (found ? found.bank : "не указан")}`;
+      tagBank.textContent = `Bank: ${normalizedBank || (found ? found.bank : "not specified")}`;
       tagMatch.textContent = `Match: ${matchLabel}`;
-      tagTime.textContent = `Время: ${formatTime(Date.now())} (+${durationMs}мс)`;
+      tagTime.textContent = `Time: ${formatTime(Date.now())} (+${durationMs}ms)`;
     });
   </script>
 </body>
