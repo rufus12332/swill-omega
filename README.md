@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CFDB v2.4 — Demo визуализация</title>
+  <title>CFDB v2.4 — визуализация</title>
   <style>
     :root{
       --bg:#070b14;
@@ -68,6 +68,7 @@
       gap: 14px;
     }
     @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+
     .card{
       border: 1px solid var(--border);
       background: var(--card);
@@ -125,7 +126,7 @@
     .tag.ok{ border-color: rgba(92,255,179,.45); color: rgba(92,255,179,.95); background: rgba(92,255,179,.08); }
     .tag.warn{ border-color: rgba(255,214,102,.45); color: rgba(255,214,102,.95); background: rgba(255,214,102,.08); }
     .tag.bad{ border-color: rgba(255,110,110,.45); color: rgba(255,110,110,.95); background: rgba(255,110,110,.08); }
-    /* “Database” table */
+
     .tableWrap{
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -152,11 +153,13 @@
       white-space: nowrap;
     }
     tbody tr:hover{ background: rgba(255,255,255,.03); }
+
     .highlight{
       outline: 2px solid rgba(106,166,255,.45);
       outline-offset: -2px;
       background: rgba(106,166,255,.08) !important;
     }
+
     .bar{
       height: 10px;
       background: rgba(255,255,255,.06);
@@ -173,6 +176,7 @@
       border-radius: 999px;
       transition: width .5s ease;
     }
+
     .foot{
       margin-top: 14px;
       color: var(--muted);
@@ -189,19 +193,20 @@
         <div class="brand">
           <div class="logo">CF</div>
           <div>
-            <h1># Check Fraud Database v2.4 — визуализация (Demo)</h1>
+            <h1># Check Fraud Database v2.4 — визуализация</h1>
             <div class="sub">
               Макет для демонстрации интерфейса: все данные и “проверки” вымышленные. Никаких реальных “скомпрометированных чеков” или банковских карт здесь нет.
             </div>
           </div>
         </div>
-        <div class="pill">UI Demo • локальная mock-логика</div>
+        <div class="pill">UI • локальная mock-логика</div>
       </div>
     </header>
+
     <div class="grid">
-      <!-- LEFT: Search -->
       <section class="card">
         <h2>## Проверка (демо)</h2>
+
         <div class="row">
           <div style="flex:1 1 260px;">
             <label for="checkId">Номер чека</label>
@@ -215,6 +220,7 @@
             <button class="btn" id="btnCheck" type="button">Проверить</button>
           </div>
         </div>
+
         <div class="resultBox" id="resultBox">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
             <div>
@@ -223,7 +229,7 @@
             </div>
             <div class="tagRow">
               <span class="tag" id="tagLevel">—</span>
-              <span class="tag" id="tagSource">Demo DB</span>
+              <span class="tag" id="tagSource">DB</span>
             </div>
           </div>
           <div class="tagRow" style="margin-top:12px;">
@@ -232,12 +238,13 @@
             <span class="tag" id="tagTime">Время: —</span>
           </div>
         </div>
+
         <div class="bar" aria-hidden="true"><i id="updateBar"></i></div>
         <div class="foot">
           Обновления в демо: <b>Март 2026</b> (mock) +<b>12 000</b> чеков. Нормализация банка включает `Bank of America`.
         </div>
       </section>
-      <!-- RIGHT: Database -->
+
       <section class="card">
         <h2>## База (вымышленная)</h2>
         <div class="muted" style="margin-bottom:10px; font-size:13px;">
@@ -256,6 +263,7 @@
             <tbody id="tbody"></tbody>
           </table>
         </div>
+
         <div class="foot">
           Примечание: UI/UX только для визуализации. Если хотите, сделаю версию “только скриншоты”
           (без формы) под ваш макет/бренд.
@@ -263,6 +271,7 @@
       </section>
     </div>
   </div>
+
   <script>
     const demoDB = [
       { id: "104-992301", risk: "OK",    card: "•••• 4821", bank: "Bank of America" },
@@ -272,32 +281,38 @@
       { id: "990-010203", risk: "OK",     card: "•••• 7002", bank: "Citi" },
       { id: "204-555666", risk: "BAD",    card: "•••• 6611", bank: "Capital One" },
     ];
+
     const levelToTagClass = (risk) => {
       if (risk === "OK") return "ok";
       if (risk === "WARN") return "warn";
       if (risk === "BAD") return "bad";
       return "";
     };
+
     function normalizeBankName(input) {
       const s = (input || "").trim().toLowerCase();
       if (!s) return "";
       const boaVariants = ["bank of america", "boa", "bankofamerica", "bank-of-america"];
       if (boaVariants.includes(s)) return "Bank of America";
-      // Title Case
-      return s.split(/\s+/).filter(Boolean)
+      return s
+        .split(/\s+/).filter(Boolean)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     }
+
     function cleanCheckId(input) {
       return (input || "").trim();
     }
+
     function renderTable() {
       const tbody = document.getElementById("tbody");
       tbody.innerHTML = "";
       demoDB.forEach((row) => {
         const tr = document.createElement("tr");
         tr.dataset.checkId = row.id;
+
         const riskText = row.risk === "OK" ? "Низкий" : (row.risk === "WARN" ? "Средний" : "Высокий");
+
         tr.innerHTML = `
           <td><code>${row.id}</code></td>
           <td><span class="tag ${levelToTagClass(row.risk)}">${riskText}</span></td>
@@ -307,30 +322,37 @@
         tbody.appendChild(tr);
       });
     }
+
     function demoComputeRiskFallback(checkId) {
-      // В демо “риск” вычисляется детерминированно только для визуализации.
       const digits = (checkId || "").replace(/\D/g, "");
       if (digits.length < 6) return { level: "WARN", text: "Недостаточно данных (демо)." };
+
       let tail = Number(digits.slice(-6));
       if (!Number.isFinite(tail)) return { level: "WARN", text: "Не удалось обработать ID (демо)." };
+
       if (tail % 13 === 0) return { level: "BAD", text: "Повышенный риск (демо). Усилить проверку." };
       if (tail % 7 === 0) return { level: "WARN", text: "Есть предупреждение (демо). Перепроверить реквизиты." };
       return { level: "OK", text: "Риск выглядит низким (демо)." };
     }
+
     function highlightMatch(checkId) {
       const tbody = document.getElementById("tbody");
       [...tbody.querySelectorAll("tr")].forEach(tr => tr.classList.remove("highlight"));
       const matchTr = [...tbody.querySelectorAll("tr")].find(tr => tr.dataset.checkId === checkId);
       if (matchTr) matchTr.classList.add("highlight");
     }
+
     function formatTime(ts) {
       const d = new Date(ts);
       return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     }
+
     renderTable();
+
     const btn = document.getElementById("btnCheck");
     const checkIdEl = document.getElementById("checkId");
     const bankEl = document.getElementById("bank");
+
     const resultBox = document.getElementById("resultBox");
     const resultText = document.getElementById("resultText");
     const tagLevel = document.getElementById("tagLevel");
@@ -338,15 +360,18 @@
     const tagMatch = document.getElementById("tagMatch");
     const tagTime = document.getElementById("tagTime");
     const updateBar = document.getElementById("updateBar");
+
     btn.addEventListener("click", () => {
       const checkId = cleanCheckId(checkIdEl.value);
       const normalizedBank = normalizeBankName(bankEl.value);
+
       const t0 = performance.now();
       highlightMatch(checkId);
-      // Ищем совпадение только в mock-таблице
+
       const found = demoDB.find(x => x.id === checkId);
-      // Обновляем “update bar” как визуальный эффект
+
       updateBar.style.width = (25 + Math.floor(Math.random() * 60)) + "%";
+
       let level, msg, matchLabel;
       if (found) {
         level = found.risk;
@@ -358,13 +383,16 @@
         msg = `В демо-базе нет совпадения. ${fallback.text}`;
         matchLabel = "Нет (mock)";
       }
+
       const durationMs = Math.max(1, Math.round(performance.now() - t0));
-      // Render
+
       resultBox.classList.add("show");
       resultText.textContent = msg;
+
       tagLevel.classList.remove("ok","warn","bad");
       tagLevel.classList.add(levelToTagClass(level));
       tagLevel.textContent = `Риск: ${level}`;
+
       tagBank.textContent = `Банк: ${normalizedBank || (found ? found.bank : "не указан")}`;
       tagMatch.textContent = `Match: ${matchLabel}`;
       tagTime.textContent = `Время: ${formatTime(Date.now())} (+${durationMs}мс)`;
